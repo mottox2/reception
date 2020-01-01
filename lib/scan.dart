@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:barcode_scan/barcode_scan.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Scan extends StatefulWidget {
   @override
@@ -37,31 +37,58 @@ class _ScanState extends State<Scan> {
       appBar: AppBar(
         title: Text('Barcode Reader'),
       ),
-      body: _buildBody(),
+      body: Column(
+        children: <Widget>[
+          Flexible(
+            child: Container(child: BookList()),
+          ),
+          _buildBody()
+        ],
+      ),
     );
   }
 
   Container _buildBody() {
     return Container(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              RaisedButton(
-                  child: Text('Scan Barcode'),
-                  onPressed: () {
-                    barcodeScanning();
-                  }),
-              Padding(
-                padding: EdgeInsets.all(16.0),
-              ),
-              Text('Result : $result'),
-            ],
+          RaisedButton(
+              child: Text('Scan Barcode'),
+              onPressed: () {
+                barcodeScanning();
+              }),
+          Padding(
+            padding: EdgeInsets.all(16.0),
           ),
+          Text('Result : $result'),
         ],
       ),
+    );
+  }
+}
+
+class BookList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: Firestore.instance.collection('books').limit(3).snapshots(),
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return new Text('Loading...');
+          default:
+            return new ListView(
+              children:
+                  snapshot.data.documents.map((DocumentSnapshot document) {
+                return new ListTile(
+                  title: new Text(document['title']),
+                  subtitle: new Text(document['circleName']),
+                );
+              }).toList(),
+            );
+        }
+      },
     );
   }
 }
