@@ -11,11 +11,13 @@ class Scan extends StatefulWidget {
 
 class _ScanState extends State<Scan> {
   String result = '';
+  final TextEditingController _textController = TextEditingController();
 
   Future barcodeScanning() async {
     try {
       String result = await BarcodeScanner.scan();
       setState(() => this.result = result);
+      _textController.text = result;
     } on PlatformException catch (e) {
       if (e.code == BarcodeScanner.CameraAccessDenied) {
         setState(() {
@@ -40,10 +42,18 @@ class _ScanState extends State<Scan> {
       body: Column(
         children: <Widget>[
           Flexible(
-            child: Container(child: BookList()),
+            child: Container(child: buildBookList()),
           ),
           _buildBody()
         ],
+      ),
+    );
+  }
+
+  Widget _buildTextComposer() {
+    return Flexible(
+      child: TextField(
+        controller: _textController,
       ),
     );
   }
@@ -57,19 +67,13 @@ class _ScanState extends State<Scan> {
               onPressed: () {
                 barcodeScanning();
               }),
-          Padding(
-            padding: EdgeInsets.all(16.0),
-          ),
-          Text('Result : $result'),
+          _buildTextComposer(),
         ],
       ),
     );
   }
-}
 
-class BookList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget buildBookList() {
     return StreamBuilder<QuerySnapshot>(
       stream: Firestore.instance.collection('books').limit(3).snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
